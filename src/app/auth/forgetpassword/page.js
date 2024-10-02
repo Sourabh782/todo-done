@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { useRouter } from "next/navigation"
 import axios from "axios"
-import { useToast } from "@/hooks/use-toast"
 import {
     Card,
     CardContent,
@@ -24,46 +23,42 @@ import {
     FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { useAppDispatch } from '@/lib/store/hooks'
-import { setAuth } from "@/lib/store/features/auth/authSlice"
-import { useTasks } from '../../../lib/context/TaskContext';
-import Link from "next/link"
+import { useToast } from "@/hooks/use-toast"
 
-const loginSchema = z.object({
+const registerSchema = z.object({
     username: z.string().min(2, {
         message: "Username must be at least 2 characters.",
+    }),
+    email: z.string().email({
+        message: "Invalid email address.",
     }),
     password: z.string().min(6, {
         message: "Password must be at least 6 characters.",
     }),
 })
 
-export default function LoginPage() {
+export default function RegisterPage() {
     const router = useRouter()
     const { toast } = useToast()
-    const dispatch = useAppDispatch()
-    const { fetchTasks } = useTasks();
     const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
     const form = useForm({
-        resolver: zodResolver(loginSchema),
+        resolver: zodResolver(registerSchema),
         defaultValues: {
             username: "",
+            email: "",
             password: "",
         },
     })
 
     const onSubmit = async (data) => {
         try {
-            toast({ description: "Logging In... 🫸🏻" })
-            const response = await axios.post(`${BASE_URL}/api/auth/login`, data)
-            localStorage.setItem("token", response.data.token)
-            toast({ description: "Log In Successfull ✅" })
-            dispatch(setAuth())
-            fetchTasks()
-            router.push("/dashboard")
+            toast({ description: "Resetting Password... 🫸🏻" })
+            await axios.post(`${BASE_URL}/api/auth/forgotpassword`, data)
+            toast({ description: "Log in with your credentials 😊" })
+            router.push("/auth/login")
         } catch (error) {
-            toast({ description: "Log In Failed ❌" })
+            console.error("Registration failed", error)
         }
     }
 
@@ -71,8 +66,8 @@ export default function LoginPage() {
         <div className="flex justify-center items-center h-[95vh] dark">
             <Card className="w-[350px]">
                 <CardHeader>
-                    <CardTitle>Log In</CardTitle>
-                    <CardDescription>Log in to unlock your productivity! 💪</CardDescription>
+                    <CardTitle>Reset Your Password</CardTitle>
+                    <CardDescription>Enter Details to reset your password</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
@@ -93,14 +88,24 @@ export default function LoginPage() {
 
                             <FormField
                                 control={form.control}
+                                name="email"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Email</FormLabel>
+                                        <FormControl>
+                                            <Input type="email" placeholder="Enter your email" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
                                 name="password"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="flex justify-between">
-                                            Password
-
-                                            <Link href="/auth/forgetpassword" className="text-xs text-gray-400 hover:cursor-pointer hover:text-white">Forgot password?</Link>
-                                        </FormLabel>
+                                        <FormLabel>New Password</FormLabel>
                                         <FormControl>
                                             <Input type="password" placeholder="Enter your password" {...field} />
                                         </FormControl>
@@ -109,7 +114,7 @@ export default function LoginPage() {
                                 )}
                             />
 
-                            <Button type="submit" variant="secondary">Login</Button>
+                            <Button type="submit">Reset Password</Button>
                         </form>
                     </Form>
                 </CardContent>
